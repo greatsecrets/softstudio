@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+.next/
+dist/
+build/
+
+# Models — too large to commit
+models/**
+ComfyUI/
+!models/.gitkeep
+
+# Generated assets
+outputs/**
+!outputs/.gitkeep
+
+# Env
+.env
+.env.local
+
+# Runtime artifacts (local DB, logs)
+softstudio.db
+*.log
+*.err.log
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,276 @@
+:root {
+  --bg: #0b0b0f;
+  --panel: #14141c;
+  --panel-2: #1c1c28;
+  --border: #2a2a38;
+  --text: #f4f4f8;
+  --text-dim: #9999a8;
+  --accent: #7c5cff;
+  --accent-hover: #9678ff;
+  --error: #ff5577;
+  --success: #4ade80;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-feature-settings: "ss01" on;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; cursor: pointer; }
+input, textarea, select { font-family: inherit; }
+
+textarea, input[type="text"] {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  padding: 14px 16px;
+  font-size: 15px;
+  width: 100%;
+  resize: none;
+  outline: none;
+  transition: border-color 120ms ease;
+}
+textarea:focus, input[type="text"]:focus { border-color: var(--accent); }
+
+button.primary {
+  background: var(--accent);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  padding: 12px 22px;
+  font-weight: 600;
+  font-size: 15px;
+  transition: background 120ms ease, transform 80ms ease;
+}
+button.primary:hover { background: var(--accent-hover); }
+button.primary:active { transform: scale(0.97); }
+button.primary:disabled { background: #44445a; cursor: not-allowed; }
+
+button.ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+  transition: all 120ms ease;
+}
+button.ghost:hover { color: var(--text); border-color: var(--accent); }
+button.ghost.active { color: var(--text); border-color: var(--accent); background: rgba(124,92,255,0.1); }
+
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+.hero {
+  text-align: center;
+  padding: 32px 0 48px;
+}
+.hero h1 {
+  font-size: 44px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.hero p { color: var(--text-dim); margin: 0; font-size: 16px; }
+
+.composer {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 32px;
+}
+
+.mode-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  align-items: center;
+}
+.controls label { color: var(--text-dim); font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.controls select {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.submit-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.tile {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease;
+}
+.tile:hover { border-color: var(--accent); transform: translateY(-2px); }
+.tile.no-click { cursor: default; }
+.tile.no-click:hover { border-color: var(--border); transform: none; }
+.tile img, .tile video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.tile .meta {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 8px 10px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  font-size: 12px;
+  color: var(--text);
+  pointer-events: none;
+}
+.tile .pending {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--text-dim);
+  font-size: 13px;
+  background: var(--panel-2);
+}
+
+.spinner {
+  width: 28px; height: 28px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 10, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  animation: fade 140ms ease;
+}
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+.lightbox .stage {
+  max-width: 95vw;
+  max-height: calc(100vh - 100px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lightbox img,
+.lightbox video {
+  max-width: 95vw;
+  max-height: calc(100vh - 100px);
+  width: auto;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(124, 92, 255, 0.25);
+  display: block;
+}
+
+.lightbox .caption {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 18px 32px 22px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-dim);
+  background: linear-gradient(transparent, rgba(0,0,0,0.6));
+  pointer-events: none;
+}
+.lightbox .caption strong { color: var(--text); font-weight: 500; }
+
+.lightbox .close {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  background: rgba(28, 28, 40, 0.7);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.lightbox .close:hover { background: var(--panel); border-color: var(--accent); }
+
+.lightbox .open-original {
+  position: fixed;
+  top: 20px;
+  left: 24px;
+  font-size: 13px;
+  color: var(--text-dim);
+  text-decoration: none;
+  background: rgba(28, 28, 40, 0.7);
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-radius: 20px;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+.lightbox .open-original:hover { color: var(--text); border-color: var(--accent); }
+
+.error-banner {
+  background: rgba(255,85,119,0.1);
+  border: 1px solid var(--error);
+  color: var(--error);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
