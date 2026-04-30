@@ -71,6 +71,78 @@ IMAGE_MODELS: dict[str, dict] = {
 }
 DEFAULT_IMAGE_MODEL = "flux-schnell"
 
+LORAS_DIR = COMFY_ROOT / "models" / "loras"
+
+# ---------------------------------------------------------------------------
+# LoRA splice — insert N LoraLoader nodes between the checkpoint and the
+# rest of the graph. Works with any workflow that has a CheckpointLoaderSimple
+# at node id "1" producing (model, clip, vae).
+# ---------------------------------------------------------------------------
+
+def inject_loras(workflow: dict, loras: list[dict], checkpoint_node_id: str = "1") -> dict:
+    """Splice a chain of LoraLoader nodes into the workflow.
+
+    Each entry in `loras` looks like {"name": "<filename>", "strength": <float>}.
+    The function chains them: checkpoint -> lora1 -> lora2 -> ... -> consumers.
+    All inputs that previously read from (checkpoint, slot 0|1) are rewritten
+    to read from (last_lora, slot 0|1).
+    """
+    if not loras:
+        return workflow
+
+    # Find a free starting node id
+    next_id = max(int(k) for k in workflow.keys() if k.isdigit()) + 1
+
+    # Chain the LoraLoaders
+    last_model: list = [checkpoint_node_id, 0]
+    last_clip: list = [checkpoint_node_id, 1]
+    inserted_ids: list[str] = []
+
+    for entry in loras:
+        name = entry.get("name")
+        strength = float(entry.get("strength", 0.8))
+        if not name or strength == 0:
+            continue
+        nid = str(next_id)
+        next_id += 1
+        workflow[nid] = {
+            "class_type": "LoraLoader",
+            "inputs": {
+                "lora_name": name,
+                "strength_model": strength,
+                "strength_clip": strength,
+                "model": last_model,
+                "clip": last_clip,
+            },
+        }
+        inserted_ids.append(nid)
+        last_model = [nid, 0]
+        last_clip = [nid, 1]
+
+    if not inserted_ids:
+        return workflow
+
+    # Rewrite consumers of the checkpoint's model/clip outputs to point to the
+    # last LoraLoader. Skip the LoraLoader nodes themselves (they already chain
+    # correctly).
+    for node_id, node in workflow.items():
+        if node_id in inserted_ids:
+            continue
+        inputs = node.get("inputs", {})
+        for input_name, value in inputs.items():
+            if not (isinstance(value, list) and len(value) == 2):
+                continue
+            src_id, src_slot = value
+            if src_id != checkpoint_node_id:
+                continue
+            if src_slot == 0:
+                inputs[input_name] = list(last_model)
+            elif src_slot == 1:
+                inputs[input_name] = list(last_clip)
+
+    return workflow
+
+
 # ---------------------------------------------------------------------------
 # Database — minimal job ledger
 # ---------------------------------------------------------------------------
@@ -267,6 +339,11 @@ app.add_middleware(
 Mode = Literal["image", "video", "i2v"]
 
 
+class LoraSpec(BaseModel):
+    name: str  # filename inside ComfyUI/models/loras/, e.g. "myAdaptor.safetensors"
+    strength: float = 0.8  # 0 disables the LoRA, typical range 0.4–1.2
+
+
 class GenerateRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=2000)
     mode: Mode = "image"
@@ -275,6 +352,7 @@ class GenerateRequest(BaseModel):
     height: int = 1024
     seed: int | None = None
     enhance: bool = True
+    loras: list[LoraSpec] = Field(default_factory=list)
     # Video-only
     length: int = 97  # frames; LTX wants 8n+1
     image_name: str | None = None  # required for i2v
@@ -358,6 +436,25 @@ async def list_models():
     }
 
 
+@app.get("/api/loras")
+async def list_loras():
+    """Scan ComfyUI/models/loras/ for available LoRA files.
+
+    Drop any .safetensors LoRA into that directory and it shows up here on the
+    next call (no restart needed).
+    """
+    if not LORAS_DIR.exists():
+        return {"loras": []}
+    out: list[dict] = []
+    for p in sorted(LORAS_DIR.iterdir()):
+        if p.is_file() and p.suffix.lower() in {".safetensors", ".ckpt", ".pt"}:
+            out.append({
+                "name": p.name,
+                "size_mb": round(p.stat().st_size / (1024 * 1024), 1),
+            })
+    return {"loras": out}
+
+
 @app.get("/api/health")
 async def health():
     try:
@@ -417,6 +514,10 @@ async def generate(req: GenerateRequest):
             job_id=job_id,
             image_name=req.image_name,
         )
+
+    # Splice LoRAs into the rendered workflow.
+    if req.loras:
+        wf = inject_loras(wf, [lora.model_dump() for lora in req.loras])
 
     prompt_id = await comfy.submit(wf)
     now = time.time()

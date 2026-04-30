@@ -42,6 +42,8 @@ export default function Home() {
   const [enhance, setEnhance] = useState(true);
   const [imageModels, setImageModels] = useState<{ id: string; label: string; notes: string }[]>([]);
   const [imageModel, setImageModel] = useState<string>("flux-schnell");
+  const [availableLoras, setAvailableLoras] = useState<{ name: string; size_mb: number }[]>([]);
+  const [activeLoras, setActiveLoras] = useState<{ name: string; strength: number }[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -73,6 +75,17 @@ export default function Home() {
       })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load available LoRAs and refresh on demand
+  function refreshLoras() {
+    fetch("/api/loras")
+      .then((r) => r.json())
+      .then((data: { loras: typeof availableLoras }) => setAvailableLoras(data.loras))
+      .catch(() => {});
+  }
+  useEffect(() => {
+    refreshLoras();
   }, []);
 
   // Initial job list
@@ -150,6 +163,7 @@ export default function Home() {
       };
       if (mode === "image") body.model = imageModel;
       if (mode === "video") body.length = VIDEO_LENGTHS[duration];
+      if (activeLoras.length > 0) body.loras = activeLoras;
       const r = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -251,6 +265,81 @@ export default function Home() {
           >
             ✨ enhance prompt {enhance ? "on" : "off"}
           </button>
+        </div>
+
+        <div className="loras">
+          <div className="loras-header">
+            <span style={{ color: "var(--text-dim)", fontSize: 13 }}>LoRAs</span>
+            <button
+              type="button"
+              className="ghost"
+              style={{ padding: "4px 10px", fontSize: 11 }}
+              onClick={refreshLoras}
+              title="Re-scan ComfyUI/models/loras/"
+            >
+              ↻ refresh
+            </button>
+            <span style={{ color: "var(--text-dim)", fontSize: 11 }}>
+              {availableLoras.length === 0
+                ? "drop .safetensors files into ComfyUI/models/loras/"
+                : `${availableLoras.length} available`}
+            </span>
+          </div>
+
+          {activeLoras.map((lora, idx) => (
+            <div key={`${lora.name}-${idx}`} className="lora-row">
+              <select
+                value={lora.name}
+                onChange={(e) => {
+                  const next = [...activeLoras];
+                  next[idx] = { ...next[idx], name: e.target.value };
+                  setActiveLoras(next);
+                }}
+              >
+                {availableLoras.map((l) => (
+                  <option key={l.name} value={l.name}>
+                    {l.name} ({l.size_mb} MB)
+                  </option>
+                ))}
+              </select>
+              <input
+                type="range"
+                min={0}
+                max={1.5}
+                step={0.05}
+                value={lora.strength}
+                onChange={(e) => {
+                  const next = [...activeLoras];
+                  next[idx] = { ...next[idx], strength: parseFloat(e.target.value) };
+                  setActiveLoras(next);
+                }}
+              />
+              <span className="lora-strength">{lora.strength.toFixed(2)}</span>
+              <button
+                type="button"
+                className="ghost lora-remove"
+                onClick={() => setActiveLoras(activeLoras.filter((_, i) => i !== idx))}
+                aria-label="remove LoRA"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+
+          {availableLoras.length > 0 && (
+            <button
+              type="button"
+              className="ghost"
+              style={{ marginTop: 8, fontSize: 12 }}
+              onClick={() => {
+                const used = new Set(activeLoras.map((l) => l.name));
+                const next = availableLoras.find((l) => !used.has(l.name));
+                if (next) setActiveLoras([...activeLoras, { name: next.name, strength: 0.8 }]);
+              }}
+            >
+              + add LoRA
+            </button>
+          )}
         </div>
 
         {error && <div className="error-banner">{error}</div>}

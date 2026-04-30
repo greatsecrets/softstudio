@@ -118,6 +118,48 @@ button.ghost.active { color: var(--text); border-color: var(--accent); backgroun
   font-size: 13px;
 }
 
+.loras {
+  margin-top: 14px;
+  padding: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.loras-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.lora-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.lora-row select {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.lora-row input[type="range"] { flex: 0 0 120px; accent-color: var(--accent); }
+.lora-strength {
+  font-size: 12px;
+  color: var(--text-dim);
+  min-width: 32px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.lora-remove {
+  padding: 4px 10px !important;
+  font-size: 14px !important;
+}
+
 .submit-row {
   display: flex;
   justify-content: space-between;
